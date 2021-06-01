@@ -33,3 +33,6 @@ duros:
 
 clusterAudit:
   enabled: false
+
+cwnps:
+    allowHttps: true

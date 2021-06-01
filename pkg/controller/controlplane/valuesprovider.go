@@ -220,6 +220,7 @@ var cpShootChart = &chart.Chart{
 
 		// cluster wide network policies
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-http"},
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-https"},
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-dns"},
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-ntp"},
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-vpn"},
@@ -276,12 +277,6 @@ type networkMap map[string]*models.V1NetworkResponse
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
 func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig config.ControllerConfiguration) genericactuator.ValuesProvider {
-	if !controllerConfig.HTTPSToApiserverOnly {
-		cpShootChart.Objects = append(
-			cpShootChart.Objects,
-			&chart.Object{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-https"},
-		)
-	}
 	if controllerConfig.Auth.Enabled {
 		configChart.Objects = append(configChart.Objects, []*chart.Object{
 			{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
@@ -665,6 +660,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	}
 	apiserverIPs := dns.Spec.Targets
 
+	cwnpsValues := map[string]interface{}{
+		"allowHttps": !infrastructure.HTTPSToApiserverOnly,
+	}
+
 	values := map[string]interface{}{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"apiserverIPs":      apiserverIPs,
@@ -677,6 +676,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		},
 		"duros":        durosValues,
 		"clusterAudit": clusterAuditValues,
+		"cwnps":        cwnpsValues,
 	}
 
 	if vp.controllerConfig.Storage.Duros.Enabled {
