@@ -220,7 +220,6 @@ var cpShootChart = &chart.Chart{
 
 		// cluster wide network policies
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-http"},
-		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-https"},
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-dns"},
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-ntp"},
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-vpn"},
@@ -277,6 +276,12 @@ type networkMap map[string]*models.V1NetworkResponse
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
 func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig config.ControllerConfiguration) genericactuator.ValuesProvider {
+	if !controllerConfig.HTTPSToApiserverOnly {
+		cpShootChart.Objects = append(
+			cpShootChart.Objects,
+			&chart.Object{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-https"},
+		)
+	}
 	if controllerConfig.Auth.Enabled {
 		configChart.Objects = append(configChart.Objects, []*chart.Object{
 			{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
