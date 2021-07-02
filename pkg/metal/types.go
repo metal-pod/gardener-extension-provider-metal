@@ -20,6 +20,8 @@ const (
 	AuthNWebhookImageName = "authn-webhook"
 	// AudittailerImageName is the name of the Audittailer to deploy to the shoot.
 	AudittailerImageName = "audittailer"
+	// AuditToSplunkImageName is the name of the fluentd with splunk plugin image to deploy to the shoot.
+	AuditToSplunkImageName = "fluentd-splunk-audit"
 	// DroptailerImageName is the name of the Droptailer to deploy to the shoot.
 	DroptailerImageName = "droptailer"
 	// MetallbSpeakerImageName is the name of the metallb speaker to deploy to the shoot.
@@ -57,6 +59,10 @@ const (
 	AudittailerClientSecretName = "audittailer-client"
 	// AudittailerServerSecretName is the name of the secret containing the certificates for the audittailer server.
 	AudittailerServerSecretName = "audittailer-server"
+	// AuditForwarderSplunkConfigName is the name of the configmap containing the splunk configuration for the auditforwarder.
+	AuditForwarderSplunkConfigName = "audit-to-splunk-config"
+	// AuditForwarderSplunkSecretName is the name of the secret containing the splunk hec token and, if required, the ca certificate.
+	AuditForwarderSplunkSecretName = "audit-to-splunk-secret"
 	// DroptailerNamespace is the namespace where the firewall droptailer will get deployed.
 	DroptailerNamespace = "firewall"
 	// DroptailerClientSecretName is the name of the secret containing the certificates for the droptailer client.

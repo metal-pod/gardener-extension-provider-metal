@@ -345,6 +345,24 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 			{Type: &rbacv1.Role{}, Name: "audittailer"},
 			{Type: &rbacv1.RoleBinding{}, Name: "audittailer"},
 		}...)
+		if controllerConfig.AuditToSplunk.Enabled {
+			configChart.Objects = append(configChart.Objects, []*chart.Object{
+				{Type: &corev1.Secret{}, Name: "audit-to-splunk-secret"},
+				{Type: &corev1.ConfigMap{}, Name: "audit-to-splunk-config"},
+			}...)
+			// cpShootChart.Images = append(cpShootChart.Images, []string{metal.AuditToSplunkImageName}...)
+			// cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
+			// 	// auditToSplunk
+			// 	{Type: &corev1.Namespace{}, Name: "fluentd-splunk-audit"},
+			// 	{Type: &policyv1beta1.PodSecurityPolicy{}, Name: "fluentd-splunk-audit"},
+			// 	{Type: &corev1.ServiceAccount{}, Name: "fluentd-splunk-audit"},
+			// 	{Type: &corev1.Secret{}, Name: "fluentd-splunk-audit"},
+			// 	{Type: &corev1.ConfigMap{}, Name: "fluentd-splunk-audit"},
+			// 	{Type: &rbacv1.ClusterRole{}, Name: "fluentd-splunk-audit"},
+			// 	{Type: &rbacv1.ClusterRoleBinding{}, Name: "fluentd-splunk-audit"},
+			// 	{Type: &appsv1.DaemonSet{}, Name: "fluentd-splunk-audit"},
+			// }...)
+		}
 	}
 
 	return &valuesProvider{
@@ -426,15 +444,38 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 
 	clusterAuditEnabled := false
 	if vp.controllerConfig.ClusterAudit.Enabled {
-		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+		if cpConfig.FeatureGates.ClusterAudit == nil || *cpConfig.FeatureGates.ClusterAudit {
 			clusterAuditEnabled = true
 		}
 	}
+
+	vp.logger.Info("SPLUNKDEBUG Reading values", "cluster", cluster.ObjectMeta.Name, "controllerConfig.AuditToSplunk.Enabled", vp.controllerConfig.AuditToSplunk.Enabled,
+		"cpConfig.FeatureGates.AuditToSplunk", cpConfig.FeatureGates.AuditToSplunk)
+	auditToSplunkEnabled := false
+	if vp.controllerConfig.AuditToSplunk.Enabled {
+		if clusterAuditEnabled {
+			if cpConfig.FeatureGates.AuditToSplunk == nil || *cpConfig.FeatureGates.AuditToSplunk {
+				auditToSplunkEnabled = true
+			}
+		}
+	}
+	auditToSplunkValues := map[string]interface{}{
+		"enabled":     auditToSplunkEnabled,
+		"hecToken":    vp.controllerConfig.AuditToSplunk.HECToken,
+		"index":       vp.controllerConfig.AuditToSplunk.Index,
+		"hecHost":     vp.controllerConfig.AuditToSplunk.HECHost,
+		"hecPort":     vp.controllerConfig.AuditToSplunk.HECPort,
+		"tlsEnabled":  vp.controllerConfig.AuditToSplunk.TLSEnabled,
+		"hecCAFile":   vp.controllerConfig.AuditToSplunk.HECCAFile,
+		"clusterName": cluster.ObjectMeta.Name,
+	}
+	vp.logger.Info("SPLUNKDEBUG", "cluster", cluster.ObjectMeta.Name, "values", auditToSplunkValues)
 
 	values := map[string]interface{}{
 		"clusterAudit": map[string]interface{}{
 			"enabled": clusterAuditEnabled,
 		},
+		"auditToSplunk": auditToSplunkValues,
 	}
 
 	return values, nil
@@ -607,7 +648,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 	}
 
 	if vp.controllerConfig.ClusterAudit.Enabled {
-		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+		if cpConfig.FeatureGates.ClusterAudit == nil || *cpConfig.FeatureGates.ClusterAudit {
 			err = vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster)
 			if err != nil {
 				vp.logger.Error(err, "error deploying audittailer certs")
@@ -643,13 +684,32 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 
 	clusterAuditEnabled := false
 	if vp.controllerConfig.ClusterAudit.Enabled {
-		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+		if cpConfig.FeatureGates.ClusterAudit == nil || *cpConfig.FeatureGates.ClusterAudit {
 			clusterAuditEnabled = true
 		}
 	}
 	clusterAuditValues := map[string]interface{}{
 		"enabled": clusterAuditEnabled,
 	}
+
+	// vp.logger.Info("SPLUNKDEBUG Reading values", "cluster", cluster.ObjectMeta.Name, "controllerConfig.AuditToSplunk.Enabled", vp.controllerConfig.AuditToSplunk.Enabled,
+	// 	"cpConfig.FeatureGates.AuditToSplunk", cpConfig.FeatureGates.AuditToSplunk)
+	// auditToSplunkEnabled := false
+	// if vp.controllerConfig.AuditToSplunk.Enabled {
+	// 	if cpConfig.FeatureGates.AuditToSplunk == nil || *cpConfig.FeatureGates.AuditToSplunk {
+	// 		auditToSplunkEnabled = true
+	// 	}
+	// }
+	// auditToSplunkValues := map[string]interface{}{
+	// 	"enabled":     auditToSplunkEnabled,
+	// 	"hecToken":    vp.controllerConfig.AuditToSplunk.HECToken,
+	// 	"index":       vp.controllerConfig.AuditToSplunk.Index,
+	// 	"hecHost":     vp.controllerConfig.AuditToSplunk.HECHost,
+	// 	"hecPort":     vp.controllerConfig.AuditToSplunk.HECPort,
+	// 	"hecCAFile":   vp.controllerConfig.AuditToSplunk.HECCAFile,
+	// 	"clusterName": cluster.ObjectMeta.Name,
+	// }
+	// vp.logger.Info("SPLUNKDEBUG", "cluster", cluster.ObjectMeta.Name, "values", auditToSplunkValues)
 
 	// get apiserver ip adresses from external dns entry
 	dns := &dnsv1alpha1.DNSEntry{}
@@ -672,6 +732,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		},
 		"duros":        durosValues,
 		"clusterAudit": clusterAuditValues,
+		// "auditToSplunk": auditToSplunkValues,
 	}
 
 	if vp.controllerConfig.Storage.Duros.Enabled {
