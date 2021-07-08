@@ -660,6 +660,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	}
 	apiserverIPs := dns.Spec.Targets
 
+	cwnpsValues := map[string]interface{}{
+		"allowHttps": !infrastructure.HTTPSToAPIServerOnly,
+	}
+
 	values := map[string]interface{}{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"apiserverIPs":      apiserverIPs,
@@ -672,6 +676,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		},
 		"duros":        durosValues,
 		"clusterAudit": clusterAuditValues,
+		"cwnps":        cwnpsValues,
 	}
 
 	if vp.controllerConfig.Storage.Duros.Enabled {
