@@ -661,7 +661,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	apiserverIPs := dns.Spec.Targets
 
 	cwnpsValues := map[string]interface{}{
-		"allowHttps": !infrastructure.HTTPSToApiserverOnly,
+		"allowHttps": !infrastructure.HTTPSToAPIServerOnly,
 	}
 
 	values := map[string]interface{}{
